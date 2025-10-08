@@ -6,77 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import QRCode from "react-qr-code"; // <- Add this
 
 const PhotographyRegistration = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [screenshotUrl, setScreenshotUrl] = useState("");
 
   const [formData, setFormData] = useState({
     participant_name: "",
     team_name: "",
     contact_details: "",
     email: "",
-    transaction_id: "",
   });
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploading(true);
-
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(7)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error } = await supabase.storage
-        .from("payment-screenshots")
-        .upload(filePath, file);
-
-      if (error) throw error;
-
-      const { data: publicUrlData } = supabase.storage
-        .from("payment-screenshots")
-        .getPublicUrl(filePath);
-
-      setScreenshotUrl(publicUrlData.publicUrl);
-
-      toast({
-        title: "Success",
-        description: "Payment screenshot uploaded successfully",
-      });
-    } catch (error: any) {
-      console.error("Error uploading file:", error);
-      toast({
-        title: "Upload failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,7 +33,6 @@ const PhotographyRegistration = () => {
       "team_name",
       "contact_details",
       "email",
-      "transaction_id",
     ];
     const missingFields = requiredFields.filter(
       (field) => !formData[field as keyof typeof formData]
@@ -102,45 +47,12 @@ const PhotographyRegistration = () => {
       return;
     }
 
-    if (!screenshotUrl) {
-      toast({
-        title: "Missing screenshot",
-        description: "Please upload payment screenshot",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      // Check duplicate transaction
-      const { data: existing, error: checkError } = await supabase
-        .from("photography_registrations")
-        .select("id")
-        .eq("transaction_id", formData.transaction_id)
-        .single();
-
-      if (checkError && checkError.code !== "PGRST116") throw checkError;
-
-      if (existing) {
-        toast({
-          title: "Duplicate Transaction",
-          description:
-            "This transaction ID has already been used. Please check and try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       const { error } = await supabase
         .from("photography_registrations")
-        .insert([
-          {
-            ...formData,
-            payment_screenshot_url: screenshotUrl,
-          },
-        ]);
+        .insert([formData]);
 
       if (error) throw error;
 
@@ -162,9 +74,6 @@ const PhotographyRegistration = () => {
     }
   };
 
-  const paymentUrl = "upi://pay?pa=your-upi-id@bank&pn=Cinevision&am=200"; // replace with actual UPI payment link
-  const paymentAmount = "₹200"; // Example payment amount
-
   return (
     <div className="min-h-screen bg-background text-foreground py-16">
       <div className="container mx-auto px-4 max-w-3xl">
@@ -179,48 +88,18 @@ const PhotographyRegistration = () => {
           onSubmit={handleSubmit}
           className="space-y-6 bg-card border border-border p-8 rounded-lg"
         >
-          {/* QR Payment Section */}
-          {/* Payment Info Section */}
-          <div className="text-center mb-6">
-            <h2 className="font-display text-2xl mb-2 text-film-red">
-              Payment Details
-            </h2>
-            <p className="text-lg font-semibold text-foreground mb-2">
-              Price: ₹200 {/* Replace with your event price */}
-            </p>
-            <p className="text-muted-foreground mb-4">
-              Scan this QR code using PhonePe, GPay, Paytm, or any UPI app to
-              complete your payment.
-            </p>
-            <div className="flex justify-center mb-2">
-              <img
-                src="/qr-code.png" // replace with your QR image path
-                alt="Payment QR Code"
-                className="w-40 h-40"
-              />
-            </div>
-          </div>
-
-          {/* Form Fields */}
           {[
             { key: "participant_name", label: "Participant Name" },
             { key: "team_name", label: "Team Name" },
             { key: "contact_details", label: "Contact Details (Phone)" },
             { key: "email", label: "Email" },
-            { key: "transaction_id", label: "Transaction ID" },
           ].map(({ key, label }) => (
             <div className="space-y-2" key={key}>
               <Label htmlFor={key}>{label} *</Label>
               <Input
                 id={key}
                 name={key}
-                type={
-                  key === "email"
-                    ? "email"
-                    : key === "contact_details"
-                    ? "tel"
-                    : "text"
-                }
+                type={key === "email" ? "email" : "text"}
                 value={formData[key as keyof typeof formData]}
                 onChange={handleInputChange}
                 required
@@ -228,27 +107,9 @@ const PhotographyRegistration = () => {
             </div>
           ))}
 
-          <div className="space-y-2">
-            <Label htmlFor="screenshot">Payment Screenshot *</Label>
-            <div className="flex items-center gap-4">
-              <Input
-                id="screenshot"
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                disabled={uploading}
-                className="flex-1"
-              />
-              {uploading && <Loader2 className="w-5 h-5 animate-spin" />}
-              {screenshotUrl && !uploading && (
-                <span className="text-sm text-green-500">✓ Uploaded</span>
-              )}
-            </div>
-          </div>
-
           <Button
             type="submit"
-            disabled={isSubmitting || uploading}
+            disabled={isSubmitting}
             className="w-full bg-film-red hover:bg-film-red/90 text-white font-sans tracking-widest"
           >
             {isSubmitting ? (
