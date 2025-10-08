@@ -44,7 +44,7 @@ const Confirmation = () => {
           </div>
 
           {/* Success Message */}
-          <div
+          {/* <div
             className="bg-card border border-border rounded-lg p-8 space-y-4 animate-slide-up"
             style={{ animationDelay: "0.4s" }}
           >
@@ -55,7 +55,7 @@ const Confirmation = () => {
               Please check your inbox (and spam folder) for your registration confirmation
               and QR code pass.
             </p>
-          </div>
+          </div> */}
 
           {/* Event Reminder */}
           <div
