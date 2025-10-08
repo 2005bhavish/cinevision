@@ -164,6 +164,27 @@ const RampwalkRegistration = () => {
           <p className="text-lg text-muted-foreground">Registration Form</p>
         </div>
 
+        {/* Payment Info Section */}
+          <div className="text-center mb-6">
+            <h2 className="font-display text-2xl mb-2 text-film-red">
+              Payment Details
+            </h2>
+            <p className="text-lg font-semibold text-foreground mb-2">
+              Price: ₹599 {/* Replace with your event price */}
+            </p>
+            <p className="text-muted-foreground mb-4">
+              Scan this QR code using PhonePe, GPay, Paytm, or any UPI app to
+              complete your payment.
+            </p>
+            <div className="flex justify-center mb-2">
+              <img
+                src="/qr-code.png" // replace with your QR image path
+                alt="Payment QR Code"
+                className="w-40 h-40"
+              />
+            </div>
+          </div>
+
         <form
           onSubmit={handleSubmit}
           className="space-y-6 bg-card border border-border p-8 rounded-lg"

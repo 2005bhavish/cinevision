@@ -18,8 +18,8 @@ const EventSelection = () => {
       path: "/register/rampwalk"
     },
     {
-      id: "contest",
-      title: "Contest",
+      id: "General-Pass",
+      title: "General Pass",
       icon: Trophy,
       description: "Compete and win exciting prizes",
       path: "/register/contest"
