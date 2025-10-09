@@ -14,7 +14,6 @@ const PhotographyRegistration = () => {
 
   const [formData, setFormData] = useState({
     participant_name: "",
-    team_name: "",
     contact_details: "",
     email: "",
   });
@@ -28,12 +27,7 @@ const PhotographyRegistration = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const requiredFields = [
-      "participant_name",
-      "team_name",
-      "contact_details",
-      "email",
-    ];
+    const requiredFields = ["participant_name", "contact_details", "email"];
     const missingFields = requiredFields.filter(
       (field) => !formData[field as keyof typeof formData]
     );
@@ -90,7 +84,6 @@ const PhotographyRegistration = () => {
         >
           {[
             { key: "participant_name", label: "Participant Name" },
-            { key: "team_name", label: "Team Name" },
             { key: "contact_details", label: "Contact Details (Phone)" },
             { key: "email", label: "Email" },
           ].map(({ key, label }) => (

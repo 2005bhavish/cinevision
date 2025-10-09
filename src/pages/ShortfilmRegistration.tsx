@@ -1,281 +1,308 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+  import { useState } from "react";
+  import { useNavigate } from "react-router-dom";
+  import { supabase } from "@/integrations/supabase/client";
+  import { Button } from "@/components/ui/button";
+  import { Input } from "@/components/ui/input";
+  import { Label } from "@/components/ui/label";
+  import { Textarea } from "@/components/ui/textarea";
+  import { useToast } from "@/hooks/use-toast";
+  import { Loader2 } from "lucide-react";
 
-const ShortfilmRegistration = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [screenshotUrl, setScreenshotUrl] = useState("");
+  const ShortfilmRegistration = () => {
+    const navigate = useNavigate();
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+    const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [screenshotUrl, setScreenshotUrl] = useState("");
+    const [shortfilmUrl, setShortfilmUrl] = useState("");
 
-  const [formData, setFormData] = useState({
-    shortfilm_title: "",
-    team_name: "",
-    team_leader_name: "",
-    team_members: "",
-    genre: "",
-    contact_details: "",
-    email: "",
-    transaction_id: "",
-  });
+    const [formData, setFormData] = useState({
+      shortfilm_title: "",
+      team_name: "",
+      team_leader_name: "",
+      team_members: "",
+      genre: "",
+      contact_details: "",
+      email: "",
+      transaction_id: "",
+    });
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+    const handleInputChange = (
+      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    // Upload Payment Screenshot
+    const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploading(true);
-
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error } = await supabase.storage
-        .from("payment-screenshots")
-        .upload(filePath, file);
-
-      if (error) throw error;
-
-      const { data: publicUrlData } = supabase.storage
-        .from("payment-screenshots")
-        .getPublicUrl(filePath);
-
-      setScreenshotUrl(publicUrlData.publicUrl);
-
-      toast({
-        title: "Success",
-        description: "Payment screenshot uploaded successfully",
-      });
-    } catch (error: any) {
-      console.error("Error uploading file:", error);
-      toast({
-        title: "Upload failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const requiredFields = [
-      "shortfilm_title",
-      "team_name",
-      "team_leader_name",
-      "team_members",
-      "genre",
-      "contact_details",
-      "email",
-      "transaction_id",
-    ];
-
-    const missingFields = requiredFields.filter(
-      (field) => !formData[field as keyof typeof formData]
-    );
-
-    if (missingFields.length > 0) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!screenshotUrl) {
-      toast({
-        title: "Missing screenshot",
-        description: "Please upload payment screenshot",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // ✅ Check for duplicate transaction_id
-      const { data: existing, error: checkError } = await supabase
-        .from("shortfilm_registrations")
-        .select("id")
-        .eq("transaction_id", formData.transaction_id)
-        .single();
-
-      if (checkError && checkError.code !== "PGRST116") throw checkError;
-
-      if (existing) {
+      if (!file.type.startsWith("image/")) {
         toast({
-          title: "Duplicate Transaction",
-          description: "This transaction ID has already been used. Please check and try again.",
+          title: "Invalid file type",
+          description: "Please upload an image file",
           variant: "destructive",
         });
         return;
       }
 
-      const { error } = await supabase
-        .from("shortfilm_registrations")
-        .insert([{ ...formData, payment_screenshot_url: screenshotUrl }]);
+      setUploadingScreenshot(true);
 
-      if (error) throw error;
+      try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${fileName}`;
 
-      toast({
-        title: "Success!",
-        description: "Registration submitted successfully",
-      });
+        const { error } = await supabase.storage
+          .from("payment-screenshots")
+          .upload(filePath, file);
 
-      navigate("/confirmation");
-    } catch (error: any) {
-      console.error("Error submitting registration:", error);
-      toast({
-        title: "Submission failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+        if (error) throw error;
 
-  return (
-    <div className="min-h-screen bg-background text-foreground py-16">
-      <div className="container mx-auto px-4 max-w-3xl">
-        <div className="text-center mb-12">
-          <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wider text-film-red">
-            SHORT FILM
-          </h1>
-          <p className="text-lg text-muted-foreground">Registration Form</p>
-        </div>
+        const { data: publicUrlData } = supabase.storage
+          .from("payment-screenshots")
+          .getPublicUrl(filePath);
 
-        {/* Payment Info Section */}
+        setScreenshotUrl(publicUrlData.publicUrl);
+
+        toast({ title: "Success", description: "Payment screenshot uploaded successfully" });
+      } catch (error: any) {
+        console.error("Error uploading file:", error);
+        toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      } finally {
+        setUploadingScreenshot(false);
+      }
+    };
+
+    // Upload Short Film Video
+    const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      if (!file.type.startsWith("video/")) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a video file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setUploadingVideo(true);
+
+      try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error } = await supabase.storage
+          .from("shortfilms")
+          .upload(filePath, file);
+
+        if (error) throw error;
+
+        const { data: publicUrlData } = supabase.storage
+          .from("shortfilms")
+          .getPublicUrl(filePath);
+
+        setShortfilmUrl(publicUrlData.publicUrl);
+
+        toast({ title: "Success", description: "Short film uploaded successfully" });
+      } catch (error: any) {
+        console.error("Error uploading file:", error);
+        toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      } finally {
+        setUploadingVideo(false);
+      }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      const requiredFields = [
+        "shortfilm_title",
+        "team_name",
+        "team_leader_name",
+        "team_members",
+        "genre",
+        "contact_details",
+        "email",
+        "transaction_id",
+      ];
+
+      const missingFields = requiredFields.filter(
+        (field) => !formData[field as keyof typeof formData]
+      );
+
+      if (missingFields.length > 0) {
+        toast({ title: "Missing fields", description: "Please fill in all required fields", variant: "destructive" });
+        return;
+      }
+
+      if (!screenshotUrl) {
+        toast({ title: "Missing screenshot", description: "Please upload payment screenshot", variant: "destructive" });
+        return;
+      }
+
+      if (!shortfilmUrl) {
+        toast({ title: "Missing Short Film", description: "Please upload your short film", variant: "destructive" });
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      try {
+        const { data: existing, error: checkError } = await supabase
+          .from("shortfilm_registrations")
+          .select("id")
+          .eq("transaction_id", formData.transaction_id)
+          .single();
+
+        if (checkError && checkError.code !== "PGRST116") throw checkError;
+
+        if (existing) {
+          toast({
+            title: "Duplicate Transaction",
+            description: "This transaction ID has already been used. Please check and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { error } = await supabase
+          .from("shortfilm_registrations")
+          .insert([{ ...formData, payment_screenshot_url: screenshotUrl, shortfilm_url: shortfilmUrl }]);
+
+        if (error) throw error;
+
+        toast({ title: "Success!", description: "Registration submitted successfully" });
+        navigate("/confirmation");
+      } catch (error: any) {
+        console.error("Error submitting registration:", error);
+        toast({ title: "Submission failed", description: error.message, variant: "destructive" });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-background text-foreground py-16">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <div className="text-center mb-12">
+            <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wider text-film-red">SHORT FILM</h1>
+            <p className="text-lg text-muted-foreground">Registration Form</p>
+          </div>
+
+          {/* Payment Info Section */}
           <div className="text-center mb-6">
-            <h2 className="font-display text-2xl mb-2 text-film-red">
-              Payment Details
-            </h2>
-            <p className="text-lg font-semibold text-foreground mb-2">
-              Price: ₹699 {/* Replace with your event price */}
-            </p>
+            <h2 className="font-display text-2xl mb-2 text-film-red">Payment Details</h2>
+            <p className="text-lg font-semibold text-foreground mb-2">Price: ₹699</p>
             <p className="text-muted-foreground mb-4">
-              Scan this QR code using PhonePe, GPay, Paytm, or any UPI app to
-              complete your payment.
+              Scan this QR code using PhonePe, GPay, Paytm, or any UPI app to complete your payment.
             </p>
             <div className="flex justify-center mb-2">
-              <img
-                src="/qr-code.png" // replace with your QR image path
-                alt="Payment QR Code"
-                className="w-40 h-40"
-              />
+              <img src="/qr-code.png" alt="Payment QR Code" className="w-40 h-40" />
             </div>
           </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-6 bg-card border border-border p-8 rounded-lg"
-        >
-          {[
-            { key: "shortfilm_title", label: "Shortfilm Title" },
-            { key: "team_name", label: "Team Name" },
-            { key: "team_leader_name", label: "Team Leader Name" },
-            { key: "team_members", label: "Team Members", isTextarea: true },
-            { key: "genre", label: "Shortfilm Genre" },
-            { key: "contact_details", label: "Contact Details (Phone)" },
-            { key: "email", label: "Email" },
-            { key: "transaction_id", label: "Transaction ID" },
-          ].map(({ key, label, isTextarea }) => (
-            <div className="space-y-2" key={key}>
-              <Label htmlFor={key}>{label} *</Label>
-              {isTextarea ? (
-                <Textarea
-                  id={key}
-                  name={key}
-                  value={formData[key as keyof typeof formData]}
-                  onChange={handleInputChange}
-                  placeholder="Enter team member names (comma-separated)"
-                  required
-                />
-              ) : (
+          <form onSubmit={handleSubmit} className="space-y-6 bg-card border border-border p-8 rounded-lg">
+            {[
+              { key: "shortfilm_title", label: "Shortfilm Title" },
+              { key: "team_name", label: "Team Name" },
+              { key: "team_leader_name", label: "Team Leader Name" },
+              { key: "team_members", label: "Team Members", isTextarea: true },
+              { key: "genre", label: "Shortfilm Genre" },
+              { key: "contact_details", label: "Contact Details (Phone)" },
+              { key: "email", label: "Email" },
+              { key: "transaction_id", label: "Transaction ID" },
+            ].map(({ key, label, isTextarea }) => (
+              <div className="space-y-2" key={key}>
+                <Label htmlFor={key}>{label} *</Label>
+                {isTextarea ? (
+                  <Textarea
+                    id={key}
+                    name={key}
+                    value={formData[key as keyof typeof formData]}
+                    onChange={handleInputChange}
+                    placeholder="Enter team member names (comma-separated)"
+                    required
+                  />
+                ) : (
+                  <Input
+                    id={key}
+                    name={key}
+                    type={key === "email" ? "email" : key === "contact_details" ? "tel" : "text"}
+                    value={formData[key as keyof typeof formData]}
+                    onChange={handleInputChange}
+                    required
+                  />
+                )}
+              </div>
+            ))}
+
+            {/* Payment Screenshot Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="screenshot">Payment Screenshot *</Label>
+              <div className="flex items-center gap-4">
                 <Input
-                  id={key}
-                  name={key}
-                  type={key === "email" ? "email" : key === "contact_details" ? "tel" : "text"}
-                  value={formData[key as keyof typeof formData]}
-                  onChange={handleInputChange}
-                  required
+                  id="screenshot"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleScreenshotUpload}
+                  disabled={uploadingScreenshot}
+                  className="flex-1"
                 />
-              )}
+                {uploadingScreenshot && <Loader2 className="w-5 h-5 animate-spin" />}
+                {screenshotUrl && !uploadingScreenshot && <span className="text-sm text-green-500">✓ Uploaded</span>}
+              </div>
             </div>
-          ))}
 
-          <div className="space-y-2">
-            <Label htmlFor="screenshot">Payment Screenshot *</Label>
-            <div className="flex items-center gap-4">
-              <Input
-                id="screenshot"
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                disabled={uploading}
-                className="flex-1"
-              />
-              {uploading && <Loader2 className="w-5 h-5 animate-spin" />}
-              {screenshotUrl && !uploading && (
-                <span className="text-sm text-green-500">✓ Uploaded</span>
-              )}
+            {/* Short Film Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="shortfilm">Upload Short Film *</Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  id="shortfilm"
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoUpload}
+                  disabled={uploadingVideo}
+                  className="flex-1"
+                />
+                {uploadingVideo && <Loader2 className="w-5 h-5 animate-spin" />}
+                {shortfilmUrl && !uploadingVideo && <span className="text-sm text-green-500">✓ Uploaded</span>}
+              </div>
             </div>
+
+            <Button
+              type="submit"
+              disabled={isSubmitting || uploadingScreenshot || uploadingVideo}
+              className="w-full bg-film-red hover:bg-film-red/90 text-white font-sans tracking-widest"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...
+                </>
+              ) : (
+                "SUBMIT REGISTRATION"
+              )}
+            </Button>
+          </form>
+
+          <div className="text-center mt-8">
+            <button
+              type="button"
+              onClick={() => navigate("/events")}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ← Back to Events
+            </button>
           </div>
-
-          <Button
-            type="submit"
-            disabled={isSubmitting || uploading}
-            className="w-full bg-film-red hover:bg-film-red/90 text-white font-sans tracking-widest"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              "SUBMIT REGISTRATION"
-            )}
-          </Button>
-        </form>
-
-        <div className="text-center mt-8">
-          <button
-            type="button"
-            onClick={() => navigate("/events")}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ← Back to Events
-          </button>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-export default ShortfilmRegistration;
+  export default ShortfilmRegistration;

@@ -16,7 +16,6 @@ const RampwalkRegistration = () => {
 
   const [formData, setFormData] = useState({
     participant_name: "",
-    team_name: "",
     contact_details: "",
     email: "",
     transaction_id: "",
@@ -28,6 +27,7 @@ const RampwalkRegistration = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // 🔹 File upload (payment screenshot)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -45,7 +45,9 @@ const RampwalkRegistration = () => {
 
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(7)}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error } = await supabase.storage
@@ -76,12 +78,12 @@ const RampwalkRegistration = () => {
     }
   };
 
+  // 🔹 Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const requiredFields = [
       "participant_name",
-      "team_name",
       "contact_details",
       "email",
       "transaction_id",
@@ -103,7 +105,7 @@ const RampwalkRegistration = () => {
     if (!screenshotUrl) {
       toast({
         title: "Missing screenshot",
-        description: "Please upload payment screenshot",
+        description: "Please upload your payment screenshot",
         variant: "destructive",
       });
       return;
@@ -124,15 +126,20 @@ const RampwalkRegistration = () => {
       if (existing) {
         toast({
           title: "Duplicate Transaction",
-          description: "This transaction ID has already been used. Please check and try again.",
+          description:
+            "This transaction ID has already been used. Please check and try again.",
           variant: "destructive",
         });
         return;
       }
 
-      const { error } = await supabase
-        .from("rampwalk_registrations")
-        .insert([{ ...formData, payment_screenshot_url: screenshotUrl }]);
+      // ✅ Insert into Supabase
+      const { error } = await supabase.from("rampwalk_registrations").insert([
+        {
+          ...formData,
+          payment_screenshot_url: screenshotUrl,
+        },
+      ]);
 
       if (error) throw error;
 
@@ -157,6 +164,7 @@ const RampwalkRegistration = () => {
   return (
     <div className="min-h-screen bg-background text-foreground py-16">
       <div className="container mx-auto px-4 max-w-3xl">
+        {/* Header */}
         <div className="text-center mb-12">
           <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wider text-film-red">
             RAMPWALK
@@ -165,33 +173,33 @@ const RampwalkRegistration = () => {
         </div>
 
         {/* Payment Info Section */}
-          <div className="text-center mb-6">
-            <h2 className="font-display text-2xl mb-2 text-film-red">
-              Payment Details
-            </h2>
-            <p className="text-lg font-semibold text-foreground mb-2">
-              Price: ₹599 {/* Replace with your event price */}
-            </p>
-            <p className="text-muted-foreground mb-4">
-              Scan this QR code using PhonePe, GPay, Paytm, or any UPI app to
-              complete your payment.
-            </p>
-            <div className="flex justify-center mb-2">
-              <img
-                src="/qr-code.png" // replace with your QR image path
-                alt="Payment QR Code"
-                className="w-40 h-40"
-              />
-            </div>
+        <div className="text-center mb-6">
+          <h2 className="font-display text-2xl mb-2 text-film-red">
+            Payment Details
+          </h2>
+          <p className="text-lg font-semibold text-foreground mb-2">
+            Price: ₹599
+          </p>
+          <p className="text-muted-foreground mb-4">
+            Scan this QR code using PhonePe, GPay, Paytm, or any UPI app to
+            complete your payment.
+          </p>
+          <div className="flex justify-center mb-2">
+            <img
+              src="/qr-code.png"
+              alt="Payment QR Code"
+              className="w-40 h-40"
+            />
           </div>
+        </div>
 
+        {/* Registration Form */}
         <form
           onSubmit={handleSubmit}
           className="space-y-6 bg-card border border-border p-8 rounded-lg"
         >
           {[
             { key: "participant_name", label: "Participant Name" },
-            { key: "team_name", label: "Team Name" },
             { key: "contact_details", label: "Contact Details (Phone)" },
             { key: "email", label: "Email" },
             { key: "transaction_id", label: "Transaction ID" },
@@ -201,7 +209,13 @@ const RampwalkRegistration = () => {
               <Input
                 id={key}
                 name={key}
-                type={key === "email" ? "email" : key === "contact_details" ? "tel" : "text"}
+                type={
+                  key === "email"
+                    ? "email"
+                    : key === "contact_details"
+                    ? "tel"
+                    : "text"
+                }
                 value={formData[key as keyof typeof formData]}
                 onChange={handleInputChange}
                 required
@@ -209,6 +223,7 @@ const RampwalkRegistration = () => {
             </div>
           ))}
 
+          {/* File upload field */}
           <div className="space-y-2">
             <Label htmlFor="screenshot">Payment Screenshot *</Label>
             <div className="flex items-center gap-4">

@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -17,14 +16,13 @@ const ContestRegistration = () => {
 
   const [formData, setFormData] = useState({
     participant_name: "",
-    team_name: "",
     contact_details: "",
     email: "",
     transaction_id: "",
   });
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -46,7 +44,9 @@ const ContestRegistration = () => {
 
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(7)}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error } = await supabase.storage
@@ -80,8 +80,10 @@ const ContestRegistration = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const requiredFields = ["participant_name", "team_name", "contact_details", "email", "transaction_id"];
-    const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData]);
+    const requiredFields = ["participant_name", "contact_details", "email", "transaction_id"];
+    const missingFields = requiredFields.filter(
+      (field) => !formData[field as keyof typeof formData]
+    );
 
     if (missingFields.length > 0) {
       toast({
@@ -122,7 +124,7 @@ const ContestRegistration = () => {
         return;
       }
 
-      // Insert new registration
+      // ✅ Insert new registration
       const { error } = await supabase.from("contest_registrations").insert([
         {
           ...formData,
@@ -161,30 +163,31 @@ const ContestRegistration = () => {
         </div>
 
         {/* Payment Info Section */}
-          <div className="text-center mb-6">
-            <h2 className="font-display text-2xl mb-2 text-film-red">
-              Payment Details
-            </h2>
-            <p className="text-lg font-semibold text-foreground mb-2">
-              Price: ₹199 {/* Replace with your event price */}
-            </p>
-            <p className="text-muted-foreground mb-4">
-              Scan this QR code using PhonePe, GPay, Paytm, or any UPI app to
-              complete your payment.
-            </p>
-            <div className="flex justify-center mb-2">
-              <img
-                src="/qr-code.png" // replace with your QR image path
-                alt="Payment QR Code"
-                className="w-40 h-40"
-              />
-            </div>
+        <div className="text-center mb-6">
+          <h2 className="font-display text-2xl mb-2 text-film-red">
+            Payment Details
+          </h2>
+          <p className="text-lg font-semibold text-foreground mb-2">
+            Price: ₹199
+          </p>
+          <p className="text-muted-foreground mb-4">
+            Scan this QR code using PhonePe, GPay, Paytm, or any UPI app to complete your payment.
+          </p>
+          <div className="flex justify-center mb-2">
+            <img
+              src="/qr-code.png"
+              alt="Payment QR Code"
+              className="w-40 h-40"
+            />
           </div>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-card border border-border p-8 rounded-lg">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 bg-card border border-border p-8 rounded-lg"
+        >
           {[
             { key: "participant_name", label: "Participant Name" },
-            { key: "team_name", label: "Team Name" },
             { key: "contact_details", label: "Contact Details (Phone)" },
             { key: "email", label: "Email" },
             { key: "transaction_id", label: "Transaction ID" },
@@ -194,7 +197,13 @@ const ContestRegistration = () => {
               <Input
                 id={key}
                 name={key}
-                type={key === "email" ? "email" : key === "contact_details" ? "tel" : "text"}
+                type={
+                  key === "email"
+                    ? "email"
+                    : key === "contact_details"
+                    ? "tel"
+                    : "text"
+                }
                 value={formData[key as keyof typeof formData]}
                 onChange={handleInputChange}
                 required
@@ -220,7 +229,11 @@ const ContestRegistration = () => {
             </div>
           </div>
 
-          <Button type="submit" disabled={isSubmitting || uploading} className="w-full bg-film-red hover:bg-film-red/90 text-white font-sans tracking-widest">
+          <Button
+            type="submit"
+            disabled={isSubmitting || uploading}
+            className="w-full bg-film-red hover:bg-film-red/90 text-white font-sans tracking-widest"
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
